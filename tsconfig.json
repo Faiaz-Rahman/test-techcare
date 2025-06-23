@@ -10,7 +10,9 @@
       "@layouts/*": ["./src/layouts/*"],
       "@store/*": ["./src/store/*"],
       "@src/types/*": ["./src/types/*"],
-      "@utils/*": ["./src/utils/*"]
+      "@utils/*": ["./src/utils/*"],
+      "@constants": ["./src/constants"],
+      "@interfaces": ["./src/interfaces"]
     }
   }
 }

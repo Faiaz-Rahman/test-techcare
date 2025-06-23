@@ -1,145 +1,174 @@
-import {createAsyncThunk, createSlice} from '@reduxjs/toolkit';
+import { Api_Link } from '@constants'
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit'
 
-// export const userLogin = createAsyncThunk(
-//   API_LINK.hitLoginLink,
-//   async (
-//     values: {
-//       email: string;
-//       password: string;
-//     },
-//     thunkAPI,
-//   ) => {
-//     try {
-//       const response = await ApiService.post(API_LINK.hitLoginLink, values);
+import ApiService from '@utils/ApiService'
+import axios, { AxiosResponse } from 'axios'
+import { UserBasicDataType } from 'src/interfaces'
 
-//       if (response.data?.role[0] === 'customer') {
-//         return response;
-//       } else {
-//         throw new Error('Sorry! This is not a customer account.');
-//       }
-//     } catch (error: any) {
-//       throw new Error('Sorry! This is not a customer account.');
-//     }
-//   },
-// );
-
-// type SignupResponse = {
-//   success: boolean;
-//   message: string;
-// };
-
-// export const userSignup = createAsyncThunk(
-//   'auth/api/registration',
-//   async (values: any, thunkAPI) => {
-//     try {
-//       const response: AxiosResponse<SignupResponse> = await ApiService.post(API_LINK.hitRegisterLink, values);
-//       return response;
-//     } catch (error) {
-//       console.log(error);
-//     }
-//   },
-// );
-
-interface UserDataType {
-  firstName: string;
-  lastName: string;
-  dob: string;
-  phone: string;
-  financialInstitution: string;
-  accountType: string;
-  routingNo: string;
-  accNo: string;
-  ssn: string;
-  branchOfService: string;
+type LoginResponse = {
+  message: string
+  access_token: string
+  user: {
+    id: string
+    email: string
+    name: string
+  }
+  errors?: {
+    message: string
+  }
 }
 
-export interface UserBasicDataType {
-  firstName: string;
-  lastName: string;
-  dob: string;
-  phone: string;
-  email: string;
-}
+export const login = createAsyncThunk(
+  Api_Link.loginEndPoint,
+  async (
+    values: {
+      email: string
+      password: string
+    },
+    thunkAPI,
+  ) => {
+    try {
+      const response: AxiosResponse<LoginResponse> = await ApiService.post(
+        Api_Link.loginEndPoint,
+        JSON.stringify(values),
+      )
 
-export interface UserBasicAddressInfoType {
-  street: string;
-  unitNumber: string;
-  city: string;
-  province: string;
-  zipCode: string;
-}
+      if (response.data?.access_token) {
+        console.log(
+          'data after successful login => async-thunk =>',
+          response?.data,
+        )
 
-export type authType = {
-  authLoader: boolean;
-  isLoggedIn: boolean;
-  user: any;
-  token: string;
-  uid: string;
-  userAddress: UserBasicAddressInfoType;
-};
+        return response.data
+      }
+    } catch (error: any) {
+      if (axios.isAxiosError(error)) {
+        const message =
+          (error?.response?.data as LoginResponse)?.errors?.message ||
+          'Internal Error'
+
+        throw new Error(message)
+      }
+    }
+  },
+)
+
+interface SignupResponse extends LoginResponse {}
+
+export const register = createAsyncThunk(
+  '/auth/register',
+  async (
+    values: {
+      email: string
+      password: string
+      name: string
+    },
+    thunkAPI,
+  ) => {
+    try {
+      const response: AxiosResponse<SignupResponse> = await ApiService.post(
+        Api_Link.registerEndpoint,
+        JSON.stringify(values),
+      )
+
+      if (response?.data?.access_token) {
+        console.log(
+          'the access token from register, thunk is =>',
+          response?.data?.access_token,
+        )
+
+        return response?.data
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const message = error?.response?.data?.errors?.email as string
+        console.log('error => register => async-thunk =>', message)
+
+        throw new Error(message)
+      }
+    }
+  },
+)
 
 const initialState = {
   authLoader: false,
   isLoggedIn: false,
   user: {
-    firstName: '',
-    lastName: '',
-    dob: '',
-    phone: '',
-    email: '',
+    access_token: '',
+    userEmail: '',
+    userId: '',
+    username: '',
   } as UserBasicDataType,
-  userAddress: {
-    street: '',
-    unitNumber: '',
-    city: '',
-    province: '',
-    zipCode: '',
-  } as UserBasicAddressInfoType,
   token: '',
   uid: '',
-};
+  userTheme: '',
+}
 
 const AuthSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
     updateAuthLoader: (state, actions) => {
-      state.authLoader = actions.payload;
+      state.authLoader = actions.payload
     },
     updateIsLoggedIn: (state, actions) => {
-      state.isLoggedIn = actions.payload;
+      state.isLoggedIn = actions.payload
     },
     updateUserUid: (state, actions) => {
-      state.uid = actions.payload;
+      state.uid = actions.payload
     },
     logoutUser: (state, actions) => {
-      state.user = initialState.user;
+      state.user = initialState.user
     },
-    updateUserData: (state, actions) => {
-      state.user.email = actions.payload.email;
-      state.user.dob = actions.payload.dob;
-      state.user.firstName = actions.payload.firstName;
-      state.user.lastName = actions.payload.lastName;
-      state.user.phone = actions.payload.phone;
-    },
-    updateUserAddress: (state, actions) => {
-      state.userAddress.city = actions.payload.city;
-      state.userAddress.street = actions.payload.street;
-      state.userAddress.province = actions.payload.province;
-      state.userAddress.unitNumber = actions.payload.unitNumber;
-      state.userAddress.zipCode = actions.payload.zipCode;
+
+    updateTheme: (
+      state,
+      actions: PayloadAction<{ theme: 'light' | 'dark' | '' }>,
+    ) => {
+      state.userTheme = actions.payload.theme
     },
   },
-  extraReducers(builder) {},
-});
+  extraReducers(builder) {
+    builder.addCase(login.pending, (state, action) => {
+      state.authLoader = true
+    })
+    builder.addCase(login.rejected, (state, action) => {
+      state.authLoader = false
+    })
+    builder.addCase(login.fulfilled, (state, action) => {
+      if (action?.payload) {
+        state.user.access_token = action?.payload?.access_token
+        state.user.userEmail = action?.payload?.user.email
+        state.user.userId = action?.payload?.user.id
+        state.user.username = action?.payload?.user.name
+      }
+    })
+
+    builder.addCase(register.pending, (state, action) => {
+      state.authLoader = true
+    })
+
+    builder.addCase(register.rejected, (state, action) => {
+      state.authLoader = false
+    })
+
+    builder.addCase(register.fulfilled, (state, action) => {
+      if (action?.payload) {
+        state.user.access_token = action?.payload?.access_token
+        state.user.userEmail = action?.payload?.user.email
+        state.user.userId = action?.payload?.user.id
+        state.user.username = action?.payload?.user.name
+      }
+    })
+  },
+})
 
 export const {
   updateAuthLoader,
   updateIsLoggedIn,
   updateUserUid,
   logoutUser,
-  updateUserData,
-  updateUserAddress,
-} = AuthSlice.actions;
+  updateTheme,
+} = AuthSlice.actions
 
-export default AuthSlice.reducer;
+export default AuthSlice.reducer

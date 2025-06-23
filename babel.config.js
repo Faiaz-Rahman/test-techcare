@@ -14,6 +14,8 @@ module.exports = {
           '@store': './src/store',
           '@src/types': './src/types',
           '@utils': './src/utils',
+          '@constants': './src/constants',
+          '@interfaces': './src/interfaces',
         },
         extensions: [
           '.ios.ts',
@@ -28,7 +30,6 @@ module.exports = {
         ],
       },
     ],
-    'react-native-reanimated/plugin',
     [
       'module:react-native-dotenv',
       {
@@ -41,5 +42,6 @@ module.exports = {
         verbose: false,
       },
     ],
+    'react-native-reanimated/plugin',
   ],
-};
+}

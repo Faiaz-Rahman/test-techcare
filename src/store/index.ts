@@ -1,6 +1,6 @@
-import {combineReducers, configureStore} from '@reduxjs/toolkit';
-import {persistReducer, persistStore} from 'redux-persist';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { combineReducers, configureStore } from '@reduxjs/toolkit'
+import { persistReducer, persistStore } from 'redux-persist'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import {
   FLUSH,
   PAUSE,
@@ -8,49 +8,55 @@ import {
   PURGE,
   REGISTER,
   REHYDRATE,
-} from 'redux-persist/es/constants';
+} from 'redux-persist/es/constants'
 
-import authSlice, {authType} from './slices/authSlice';
-// import userSlice, {userType} from './slices/userSlice';
-import {useDispatch} from 'react-redux';
+import authSlice from './slices/authSlice'
+
+import noteSlice from './slices/noteSlice'
+
+import { useDispatch } from 'react-redux'
+import { authType } from '@interfaces'
+import { authApi } from './services/authApi'
+import { noteState } from './slices/noteSlice'
 
 export type RootState = {
-  auth: authType;
-  //   user: userType;
-};
+  auth: authType
+  note: noteState
+}
 
 const rootReducer = combineReducers({
-  //   app: appSlice,
   auth: authSlice,
-  //   user: userSlice,
-});
+  [authApi.reducerPath]: authApi.reducer,
+  note: noteSlice,
+})
 
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-};
+}
 
-const persistedReducer = persistReducer(persistConfig, rootReducer);
+const persistedReducer = persistReducer(persistConfig, rootReducer)
 
 export const store = configureStore({
   reducer: persistedReducer,
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
-      immutableCheck: {warnAfter: 128},
+      immutableCheck: { warnAfter: 128 },
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
     }),
-});
+})
 
 export const resetStore = async () => {
-  await AsyncStorage.clear(); // Clear the storage used by redux-persist
-  const persistor = persistStore(store);
-  persistor.purge(); // Clear the persisted store
-  store.dispatch({type: 'RESET_STORE'}); // Reset the store state to its initial state
-};
-// resetStore();
+  await AsyncStorage.clear()
 
-export const persistor = persistStore(store);
-export type AppDispatch = typeof store.dispatch;
-export const useAppDispatch = () => useDispatch<AppDispatch>();
+  const persistor = persistStore(store)
+
+  persistor.purge()
+  store.dispatch({ type: 'RESET_STORE' })
+}
+
+export const persistor = persistStore(store)
+export type AppDispatch = typeof store.dispatch
+export const useAppDispatch = () => useDispatch<AppDispatch>()
